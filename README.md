@@ -16,4 +16,5 @@ If you need to use jsoup
 ```java
 Map<String, String> cookies = cf.List2Map(cf.cookies());
 ```  
-## If you find any issues, please file a bug after checking for duplicates.
+## issues
+If you find any issues, please file a bug after checking for duplicates so I can fix it.
