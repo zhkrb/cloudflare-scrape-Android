@@ -30,7 +30,7 @@ import java.util.regex.Pattern;
 public class cloudflare {
 
     private CookieManager cm;
-    private String UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/57.0.2987.98 Safari/537.36";
+    private String UA;
     private String url;
 
 
@@ -117,6 +117,8 @@ public class cloudflare {
                     }
                 }
             }
+        }catch (NullPointerException e){
+            Log.e("Err","Must set UA");
         } catch (IOException | InterruptedException e) {
             e.printStackTrace();
         }
