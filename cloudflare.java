@@ -46,16 +46,14 @@ public class cloudflare {
         try {
             /**
              * 第一次链接得到响应头为503的DDOS page；
-             * 200则直接返回
+             * 其他则直接返回
+             * 正则时没有匹配到也返回
              */
             URL ConnUrl = new URL(url);
             HttpURLConnection conn= (HttpURLConnection) ConnUrl.openConnection();
             conn.setRequestProperty("User-Agent",getUA());
-
-            if (conn.getResponseCode() == 200){
-                CookieStore cookieStore = cm.getCookieStore();
-                return cookieStore.getCookies();
-            }else {
+            conn.connect();
+            if (conn.getResponseCode() == 503){
                 InputStream is = conn.getErrorStream();
                 BufferedReader br = new BufferedReader(new InputStreamReader(is));
                 StringBuilder sb = new StringBuilder();
@@ -81,8 +79,8 @@ public class cloudflare {
 
                 Thread.sleep(4000);
 
-                /**
-                 * 第二次链接得到相应头为302的页面并取得cookies；
+                /*
+                  第二次链接得到相应头为302的页面并取得cookies；
                  */
                 String req = String.valueOf("https://"+ConnUrl.getHost())+"/cdn-cgi/l/chk_jschl?"
                         +"jschl_vc="+jschl_vc+"&pass="+pass+"&jschl_answer="+jschl_answer;
@@ -99,8 +97,8 @@ public class cloudflare {
                     reqconn.disconnect();
                     System.out.println(reqconn.getHeaderFields());
 
-                    /**
-                     * 同上
+                    /*
+                      同上
                      */
                     HttpURLConnection conn302 = (HttpURLConnection) new URL(req).openConnection();
                     conn302.setRequestProperty("Referer",ConnUrl.getHost());
@@ -116,10 +114,18 @@ public class cloudflare {
                         return ck2.getCookies();
                     }
                 }
+            }else {
+                CookieStore cookieStore = cm.getCookieStore();
+                return cookieStore.getCookies();
+
             }
         }catch (NullPointerException e){
             Log.e("Err","Must set UA");
-        } catch (IOException | InterruptedException e) {
+        }catch (IndexOutOfBoundsException e){
+            CookieStore cookieStore = cm.getCookieStore();
+            return cookieStore.getCookies();
+        }
+        catch (IOException | InterruptedException e){
             e.printStackTrace();
         }
         return null;
