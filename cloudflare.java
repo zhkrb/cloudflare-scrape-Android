@@ -1,9 +1,5 @@
-package com.zhkrb.www.dmmagnet.aria2;
-
 import android.util.Log;
-
 import com.eclipsesource.v8.V8;
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -132,6 +128,9 @@ public class cloudflare {
         }
 
     private int get_answer(String str) {  //取值
+        int a = 0;
+
+        try {
         List<String> s = regex(str,"var s,t,o,p,b,r,e,a,k,i,n,g,f, (.+?)=\\{\"(.+?)\"");
         System.out.println(s);
         String varA = s.get(0);
@@ -148,10 +147,14 @@ public class cloudflare {
         }
         Log.i("add",sb.toString());
         V8 v8 = V8.createV8Runtime();
-        int a = v8.executeIntegerScript(sb.toString());
-        try {
+        a = v8.executeIntegerScript(sb.toString());
+
             a += new URL(url).getHost().length();
-        } catch (MalformedURLException e) {
+        }catch (IndexOutOfBoundsException e){
+            Log.e("answerErr","get answer error");
+            e.printStackTrace();
+        }
+        catch (MalformedURLException e) {
             e.printStackTrace();
         }
         return a;
@@ -191,11 +194,19 @@ public class cloudflare {
 
     public Map<String,String> List2Map(List<HttpCookie> list){  //转换为jsoup可用的map
          Map<String,String> map= new HashMap<>();
-        for (int i=0;i<list.size();i++){
-            String[] listStr = list.get(i).toString().split("=");
-            map.put(listStr[0],listStr[1]);
-        }
-        Log.i("List2Map",map.toString());
+         try {if (list!=null){
+             for (int i=0;i<list.size();i++){
+                 String[] listStr = list.get(i).toString().split("=");
+                 map.put(listStr[0],listStr[1]);
+             }
+             Log.i("List2Map",map.toString());
+         }else return map;
+
+         }catch (IndexOutOfBoundsException e){
+             e.printStackTrace();
+         }
+
+
         return map;
     }
 
