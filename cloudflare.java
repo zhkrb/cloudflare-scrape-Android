@@ -1,5 +1,9 @@
+package com.seselive.phonelive.custom;
+
 import android.util.Log;
 import com.eclipsesource.v8.V8;
+import com.eclipsesource.v8.V8Object;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -21,6 +25,8 @@ import java.util.regex.Pattern;
 
 /**
  * Created by zhkrb on 2017/3/30.
+ *
+ * fix on 2018/10/17:change jschl_answer to double
  */
 
 public class cloudflare {
@@ -70,7 +76,7 @@ public class cloudflare {
                 System.out.println(str);
                 String jschl_vc = regex(str,"name=\"jschl_vc\" value=\"(.+?)\"").get(0);    //正则取值
                 String pass = regex(str,"name=\"pass\" value=\"(.+?)\"").get(0);            //
-                int jschl_answer = get_answer(str);                                         //计算结果
+                double jschl_answer = get_answer(str);                                         //计算结果
                 System.out.println(jschl_answer);
 
                 Thread.sleep(4000);
@@ -127,8 +133,8 @@ public class cloudflare {
         return null;
         }
 
-    private int get_answer(String str) {  //取值
-        int a = 0;
+    private double get_answer(String str) {  //取值
+        double a = 0;
 
         try {
         List<String> s = regex(str,"var s,t,o,p,b,r,e,a,k,i,n,g,f, (.+?)=\\{\"(.+?)\"");
@@ -136,7 +142,7 @@ public class cloudflare {
         String varA = s.get(0);
         String varB = s.get(1);
         StringBuilder sb = new StringBuilder();
-        sb.append("a=");
+        sb.append("var a=");
         sb.append(regex(str,varA+"=\\{\""+varB+"\":(.+?)\\}").get(0));
         sb.append(";");
         List<String> b = regex(str,varA+"\\."+varB+"(.+?)\\;");
@@ -145,11 +151,17 @@ public class cloudflare {
             sb.append(b.get(i));
             sb.append(";");
         }
+
         Log.i("add",sb.toString());
         V8 v8 = V8.createV8Runtime();
-        a = v8.executeIntegerScript(sb.toString());
+        a = v8.executeDoubleScript(sb.toString());
+        List<String> fixNum = regex(str,"toFixed\\((.+?)\\)");
+        if (fixNum!=null){
+            a = Double.parseDouble(v8.executeStringScript(String.valueOf(a)+".toFixed("+fixNum.get(0)+");"));
+        }
 
-            a += new URL(url).getHost().length();
+        a += new URL(url).getHost().length();
+        v8.release();
         }catch (IndexOutOfBoundsException e){
             Log.e("answerErr","get answer error");
             e.printStackTrace();
@@ -211,8 +223,3 @@ public class cloudflare {
     }
 
 }
-
-
-
-
-
