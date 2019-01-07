@@ -1,10 +1,11 @@
-package com.zhkrb.www.dmmagnet.aria2;
+package io.github.nandandesai.samplenetworkmeasurement;
 
 import android.os.Looper;
 import android.text.TextUtils;
 import android.util.Log;
 
-import com.eclipsesource.v8.V8;
+import org.mozilla.javascript.Context;
+import org.mozilla.javascript.Scriptable;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -13,7 +14,6 @@ import java.io.InputStreamReader;
 import java.net.CookieHandler;
 import java.net.CookieManager;
 import java.net.CookiePolicy;
-import java.net.CookieStore;
 import java.net.HttpCookie;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
@@ -259,14 +259,21 @@ public class Cloudflare {
             }
 
             e("add",sb.toString());
-            V8 v8 = V8.createV8Runtime();
-            a = v8.executeDoubleScript(sb.toString());
-            List<String> fixNum = regex(str,"toFixed\\((.+?)\\)");
-            if (fixNum!=null){
-                a = Double.parseDouble(v8.executeStringScript("String("+String.valueOf(a)+".toFixed("+fixNum.get(0)+"));"));
+            Context rhino = Context.enter();
+            rhino.setOptimizationLevel(-1);
+            try{
+                Scriptable scope = rhino.initStandardObjects();
+                a= Double.parseDouble(rhino.evaluateString(scope, sb.toString(), "JavaScript", 1, null).toString());
+                List<String> fixNum = regex(str,"toFixed\\((.+?)\\)");
+                if (fixNum!=null){
+                    String script="String("+ String.valueOf(a)+".toFixed("+fixNum.get(0)+"));";
+                    a = Double.parseDouble(rhino.evaluateString(scope, script, "JavaScript", 1, null).toString());
+                }
+                a += new URL(mUrl).getHost().length();
+
+            }finally {
+                Context.exit();
             }
-            a += new URL(mUrl).getHost().length();
-            v8.release();
         }catch (IndexOutOfBoundsException e){
             e("answerErr","get answer error");
             e.printStackTrace();
