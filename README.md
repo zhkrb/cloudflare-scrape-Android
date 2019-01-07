@@ -5,7 +5,8 @@ A tool to bypass the Cloudflare DDOS page.
 Inspired by [cloudflare-scrape](https://github.com/Anorov/cloudflare-scrape).  
 # GET START  
 ### Dependent project  
-[eclipsesource/J2V8](https://github.com/eclipsesource/J2V8)  
+[Mozilla Rhino](https://developer.mozilla.org/en-US/docs/Mozilla/Projects/Rhino/Download_Rhino)  
+
 ### Example  
 ```java
     Cloudflare cf = new Cloudflare(url);
