@@ -6,6 +6,8 @@ Inspired by [cloudflare-scrape](https://github.com/Anorov/cloudflare-scrape).
 # GET START  
 ### Dependent project  
 [eclipsesource/J2V8](https://github.com/eclipsesource/J2V8)  
+  
+If you want to use Mozilla's [Rhino](https://developer.mozilla.org/en-US/docs/Mozilla/Projects/Rhino/Download_Rhino) (Lighter than the v8 engine), use this [branch](https://github.com/zhkrb/cloudflare-scrape-Android/tree/Rhino-Dependent), is rewrite for [NandanDesai](https://github.com/NandanDesai), thanks for his code submission
 ### Example  
 ```java
     Cloudflare cf = new Cloudflare(url);
