@@ -1,5 +1,6 @@
 package io.github.nandandesai.samplenetworkmeasurement;
 
+import android.net.Uri;
 import android.os.Looper;
 import android.text.TextUtils;
 import android.util.Log;
@@ -170,9 +171,10 @@ public class Cloudflare {
         Thread.sleep(3000);
         String req = String.valueOf("https://"+ConnUrl.getHost())+"/cdn-cgi/l/chk_jschl?";
         if (!TextUtils.isEmpty(s)){
+            s = Uri.encode(s);
             req+="s="+s+"&";
         }
-        req+="jschl_vc="+jschl_vc+"&pass="+pass+"&jschl_answer="+jschl_answer;
+        req+="jschl_vc="+jschl_vc+"&pass="+Uri.encode(pass)+"&jschl_answer="+jschl_answer;
         e("RedirectUrl",req);
         getRedirectResponse(req);
     }
