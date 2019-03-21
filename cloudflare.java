@@ -1,5 +1,6 @@
 package com.zhkrb.www.dmmagnet.aria2;
 
+import android.net.Uri;
 import android.os.Looper;
 import android.text.TextUtils;
 import android.util.Log;
@@ -19,6 +20,7 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -87,10 +89,12 @@ public class Cloudflare {
                     canVisit=true;
                     break;
                 }else {
+//                    mCookieManager.getCookieStore().removeAll();
                     getVisiteCookie();
                 }
             } catch (IOException | InterruptedException e) {
                 if (mCookieList!=null){
+                    mCookieList= new ArrayList<>(mCookieList);
                     mCookieList.clear();
                 }
                 e.printStackTrace();
@@ -167,12 +171,13 @@ public class Cloudflare {
         String pass = regex(str,"name=\"pass\" value=\"(.+?)\"").get(0);            //
         double jschl_answer = get_answer(str);
         e(String.valueOf(jschl_answer));
-        Thread.sleep(3000);
+        Thread.sleep(5000);
         String req = String.valueOf("https://"+ConnUrl.getHost())+"/cdn-cgi/l/chk_jschl?";
         if (!TextUtils.isEmpty(s)){
+            s = Uri.encode(s);
             req+="s="+s+"&";
         }
-        req+="jschl_vc="+jschl_vc+"&pass="+pass+"&jschl_answer="+jschl_answer;
+        req+="jschl_vc="+jschl_vc+"&pass="+Uri.encode(pass)+"&jschl_answer="+jschl_answer;
         e("RedirectUrl",req);
         getRedirectResponse(req);
     }
@@ -187,7 +192,7 @@ public class Cloudflare {
             mGetRedirectionConn.setRequestProperty("user-agent",mUser_agent);
         }
         mGetRedirectionConn.setRequestProperty("accept",ACCEPT);
-        mGetRedirectionConn.setRequestProperty("referer", req);
+        mGetRedirectionConn.setRequestProperty("referer", mUrl);
         if (mCookieList!=null&&mCookieList.size()>0){
             mGetRedirectionConn.setRequestProperty("cookie",listToString(mCookieList));
         }
