@@ -174,7 +174,7 @@ public class Cloudflare {
             s = Uri.encode(s);
             req+="s="+s+"&";
         }
-        req+="jschl_vc="+jschl_vc+"&pass="+Uri.encode(pass)+"&jschl_answer="+jschl_answer;
+        req+="jschl_vc="+Uri.encode(jschl_vc)+"&pass="+Uri.encode(pass)+"&jschl_answer="+jschl_answer;
         e("RedirectUrl",req);
         getRedirectResponse(req);
     }
@@ -254,6 +254,7 @@ public class Cloudflare {
             String varA = s.get(0);
             String varB = s.get(1);
             StringBuilder sb = new StringBuilder();
+            sb.append("var t=\"").append(new URL(mUrl).getHost()).append("\";");
             sb.append("var a=");
             sb.append(regex(str,varA+"=\\{\""+varB+"\":(.+?)\\}").get(0));
             sb.append(";");
