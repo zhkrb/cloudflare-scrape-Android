@@ -285,14 +285,6 @@ public class Cloudflare {
         return a;
     }
 
-    private String checkJsEval(String s) {
-
-
-
-
-        return null;
-    }
-
     /**
      * 正则
      * @param text 本体
