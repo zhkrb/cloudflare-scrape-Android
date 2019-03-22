@@ -14,13 +14,11 @@ import java.io.InputStreamReader;
 import java.net.CookieHandler;
 import java.net.CookieManager;
 import java.net.CookiePolicy;
-import java.net.CookieStore;
 import java.net.HttpCookie;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -89,7 +87,6 @@ public class Cloudflare {
                     canVisit=true;
                     break;
                 }else {
-//                    mCookieManager.getCookieStore().removeAll();
                     getVisiteCookie();
                 }
             } catch (IOException | InterruptedException e) {
@@ -177,7 +174,7 @@ public class Cloudflare {
             s = Uri.encode(s);
             req+="s="+s+"&";
         }
-        req+="jschl_vc="+jschl_vc+"&pass="+Uri.encode(pass)+"&jschl_answer="+jschl_answer;
+        req+="jschl_vc="+Uri.encode(jschl_vc)+"&pass="+Uri.encode(pass)+"&jschl_answer="+jschl_answer;
         e("RedirectUrl",req);
         getRedirectResponse(req);
     }
@@ -257,6 +254,7 @@ public class Cloudflare {
             String varA = s.get(0);
             String varB = s.get(1);
             StringBuilder sb = new StringBuilder();
+            sb.append("var t=\"").append(new URL(mUrl).getHost()).append("\";");
             sb.append("var a=");
             sb.append(regex(str,varA+"=\\{\""+varB+"\":(.+?)\\}").get(0));
             sb.append(";");
@@ -285,6 +283,14 @@ public class Cloudflare {
             e.printStackTrace();
         }
         return a;
+    }
+
+    private String checkJsEval(String s) {
+
+
+
+
+        return null;
     }
 
     /**
