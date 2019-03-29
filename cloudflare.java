@@ -6,6 +6,7 @@ import android.text.TextUtils;
 import android.util.Log;
 
 import com.eclipsesource.v8.V8;
+import com.eclipsesource.v8.V8RuntimeException;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -291,8 +292,10 @@ public class Cloudflare {
         }catch (IndexOutOfBoundsException e){
             e("answerErr","get answer error");
             e.printStackTrace();
-        }
-        catch (MalformedURLException e) {
+        } catch (MalformedURLException e) {
+            e.printStackTrace();
+        }catch (V8RuntimeException e){
+            e("scriptRuntimeErr","script runtime error,check the js code");
             e.printStackTrace();
         }
         return a;
