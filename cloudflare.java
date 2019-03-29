@@ -40,7 +40,7 @@ public class Cloudflare {
 
     private static final int MAX_COUNT = 3;
     private static final int CONN_TIMEOUT = 60000;
-    private static final String ACCEPT = "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;";
+    private static final String ACCEPT = "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3";
 
     private boolean canVisit = false;
 
@@ -168,7 +168,7 @@ public class Cloudflare {
         String pass = regex(str,"name=\"pass\" value=\"(.+?)\"").get(0);            //
         double jschl_answer = get_answer(str);
         e(String.valueOf(jschl_answer));
-        Thread.sleep(5000);
+        Thread.sleep(3000);
         String req = String.valueOf("https://"+ConnUrl.getHost())+"/cdn-cgi/l/chk_jschl?";
         if (!TextUtils.isEmpty(s)){
             s = Uri.encode(s);
@@ -185,6 +185,7 @@ public class Cloudflare {
         mGetRedirectionConn.setRequestMethod("GET");
         mGetRedirectionConn.setConnectTimeout(CONN_TIMEOUT);
         mGetRedirectionConn.setReadTimeout(CONN_TIMEOUT);
+        mGetRedirectionConn.setUseCaches(false);
         if (!TextUtils.isEmpty(mUser_agent)){
             mGetRedirectionConn.setRequestProperty("user-agent",mUser_agent);
         }
@@ -253,16 +254,28 @@ public class Cloudflare {
                     "(.+?)=\\{\"(.+?)\"");
             String varA = s.get(0);
             String varB = s.get(1);
+            String div_cfdn = getCfdnDOM(str);
+            List<String> eval_fuc = null;
+            if (!TextUtils.isEmpty(div_cfdn)){
+                eval_fuc = checkEval(str);
+            }
+
             StringBuilder sb = new StringBuilder();
             sb.append("var t=\"").append(new URL(mUrl).getHost()).append("\";");
             sb.append("var a=");
             sb.append(regex(str,varA+"=\\{\""+varB+"\":(.+?)\\}").get(0));
             sb.append(";");
             List<String> b = regex(str,varA+"\\."+varB+"(.+?)\\;");
-            for (int i =0;i<b.size()-1;i++){
-                sb.append("a");
-                sb.append(b.get(i));
-                sb.append(";");
+            if (b != null) {
+                for (int i =0;i<b.size()-1;i++){
+                    sb.append("a");
+                    if (eval_fuc!=null&&eval_fuc.size()>0){
+                        sb.append(replaceEval(b.get(i),div_cfdn,eval_fuc));
+                    }else {
+                        sb.append(b.get(i));
+                    }
+                    sb.append(";");
+                }
             }
 
             e("add",sb.toString());
@@ -273,7 +286,7 @@ public class Cloudflare {
                 e("toFix",fixNum.get(0));
                 a = Double.parseDouble(v8.executeStringScript("String("+String.valueOf(a)+".toFixed("+fixNum.get(0)+"));"));
             }
-            a += new URL(mUrl).getHost().length();
+//            a += new URL(mUrl).getHost().length();
             v8.release();
         }catch (IndexOutOfBoundsException e){
             e("answerErr","get answer error");
@@ -283,6 +296,39 @@ public class Cloudflare {
             e.printStackTrace();
         }
         return a;
+    }
+
+    private String replaceEval(String s, String div_cfdn, List<String> eval_fuc) {
+        List<String> eval = regex(s,"eval\\(eval\\((.+?)");
+        if (eval==null||eval.size()==0){
+            return s;
+        }
+        s = s.replace(eval_fuc.get(0),div_cfdn);
+        s+=";"+eval_fuc.get(1);
+        return s;
+    }
+
+    private List<String> checkEval(String str) {
+        List<String> evalDom = regex(str,"function\\(p\\)\\{var p = (.+?)\\;(.+?)\\;");
+        if (evalDom==null||evalDom.size()==0){
+            return null;
+        }else {
+            return evalDom;
+        }
+    }
+
+    private String getCfdnDOM(String str) {
+        String dom = regex(str,"k \\= \\'(.+?)\\'\\;").get(0);
+        if (!TextUtils.isEmpty(dom)){
+            String cfdn = regex(str,"id=\""+dom+"\">(.+?)</div>").get(0);
+            if (!TextUtils.isEmpty(cfdn)){
+                return cfdn;
+            }else {
+                return "";
+            }
+        }else {
+            return "";
+        }
     }
 
     /**
@@ -308,8 +354,8 @@ public class Cloudflare {
             return group;
         }catch (NullPointerException e){
             Log.i("MATCH","null");
+            return null;
         }
-        return null;
     }
 
     /**
