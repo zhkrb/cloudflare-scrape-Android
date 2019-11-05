@@ -14,7 +14,7 @@ If you want to use Mozilla's [Rhino](https://developer.mozilla.org/en-US/docs/Mo
     cf.setUser_agent(UA);
     cf.getCookies(new Cloudflare.cfCallback() {
         @Override
-        public void onSuccess(List<HttpCookie> cookieList) {
+        public void onSuccess(List<HttpCookie> cookieList, boolean hasNewUrl ,String newUrl) {
 	    something..
         }
 
@@ -25,7 +25,8 @@ If you want to use Mozilla's [Rhino](https://developer.mozilla.org/en-US/docs/Mo
     });
 ```  
 PS: When you want to use cookieList for String, you needed call `Cloudflare.listToString(cookieList)` conversion to String.  
-  
+PS: If url redirect to new url, hasNewUrl will return true and 3rd parameter return new url
+   
 If you need to use jsoup  
 ```java
 Map<String, String> cookies = Cloudflare.List2Map(cookies);
