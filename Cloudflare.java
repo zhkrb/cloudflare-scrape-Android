@@ -30,7 +30,6 @@ public class Cloudflare {
 
     private String mUrl;
     private String mUser_agent;
-    private cfCallback mCallback;
     private int mRetry_count;
     private URL ConnUrl;
     private List<HttpCookie> mCookieList;
@@ -318,7 +317,9 @@ public class Cloudflare {
                 e("toFix",fixNum.get(0));
                 a = Double.parseDouble(v8.executeStringScript("String("+ a +".toFixed("+fixNum.get(0)+"));"));
             }
-//            a += new URL(mUrl).getHost().length();
+            if (b !=null && b.get(b.size()-1).contains("t.length")){
+                a += new URL(mUrl).getHost().length();
+            }
             v8.release();
         }catch (IndexOutOfBoundsException e){
             e("answerErr","get answer error");
@@ -352,9 +353,9 @@ public class Cloudflare {
     }
 
     private String getCfdnDOM(String str) {
-        String dom = regex(str,"k \\= \\'(.+?)\\'\\;").get(0);
-        if (!TextUtils.isEmpty(dom)){
-            String cfdn = regex(str,"id=\""+dom+"\">(.+?)</div>").get(0);
+        List<String> dom = regex(str,"k \\= \\'(.+?)\\'\\;");
+        if (dom != null && dom.size() > 0){
+            String cfdn = regex(str,"id=\""+dom.get(0)+"\">(.+?)</div>").get(0);
             if (!TextUtils.isEmpty(cfdn)){
                 return cfdn;
             }else {
