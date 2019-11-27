@@ -3,15 +3,19 @@ package com.zhkrb.www.dmmagnet.aria2;
 import android.net.Uri;
 import android.os.Looper;
 import android.text.TextUtils;
+import android.util.ArrayMap;
 import android.util.Log;
 
 import com.eclipsesource.v8.V8;
 import com.eclipsesource.v8.V8RuntimeException;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 import java.net.CookieHandler;
 import java.net.CookieManager;
 import java.net.CookiePolicy;
@@ -25,6 +29,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+//TODO SSLSocketFactory setEnabledCipherSuites
+//ECDHE-ECDSA-AES128-GCM-SHA256
 
 public class Cloudflare {
 
@@ -89,7 +96,7 @@ public class Cloudflare {
                 }else {
                     getVisiteCookie();
                 }
-            } catch (IOException | InterruptedException e) {
+            } catch (IOException| RuntimeException | InterruptedException e) {
                 if (mCookieList!=null){
                     mCookieList= new ArrayList<>(mCookieList);
                     mCookieList.clear();
@@ -170,29 +177,60 @@ public class Cloudflare {
      * 获取值并跳转获得cookies
      * @param str
      */
-    private void getCheckAnswer(String str) throws InterruptedException, IOException {
-        String s = regex(str,"name=\"s\" value=\"(.+?)\"").get(0);   //正则取值
-        String jschl_vc = regex(str,"name=\"jschl_vc\" value=\"(.+?)\"").get(0);
-        String pass = regex(str,"name=\"pass\" value=\"(.+?)\"").get(0);            //
-        double jschl_answer = get_answer(str);
-        e(String.valueOf(jschl_answer));
-        Thread.sleep(3000);
-        String req = String.valueOf("https://"+ConnUrl.getHost())+"/cdn-cgi/l/chk_jschl?";
-        if (!TextUtils.isEmpty(s)){
-            s = Uri.encode(s);
-            req+="s="+s+"&";
+    private void getCheckAnswer(String str) throws InterruptedException, IOException,RuntimeException {
+        AnswerBean bean = new AnswerBean();
+        if (str.contains("POST")){
+            bean.setMethod(AnswerBean.POST);
+
+            ArrayList<String> param = (ArrayList<String>) regex(str,"<form id=\"challenge-form\" action=\"(.+?)\"");
+            if (param == null || param.size() == 0){
+                e("getPost param error");
+                throw new RuntimeException("getPost param error");
+            }
+            bean.setHost("https://"+ConnUrl.getHost()+param.get(0));
+            ArrayList<String> s = (ArrayList<String>) regex(str,"<input type=\"hidden\" name=\"(.+?)\" value=\"(.+?)\">");
+            if (s != null && s.size() > 0){
+                bean.getFromData().put(s.get(0),s.get(1).contains("input type=\"hidden\"") ? "" : s.get(1));
+            }
+            String jschl_vc = regex(str,"name=\"jschl_vc\" value=\"(.+?)\"").get(0);
+            String pass = regex(str,"name=\"pass\" value=\"(.+?)\"").get(0);
+            bean.getFromData().put("jschl_vc",jschl_vc);
+            bean.getFromData().put("pass",pass);
+            double jschl_answer = get_answer(str);
+            e(String.valueOf(jschl_answer));
+            Thread.sleep(3000);
+            bean.getFromData().put("jschl_answer",String.valueOf(jschl_answer));
+        }else {
+            bean.setMethod(AnswerBean.GET);
+
+            String s = regex(str,"name=\"s\" value=\"(.+?)\"").get(0);   //正则取值
+            String jschl_vc = regex(str,"name=\"jschl_vc\" value=\"(.+?)\"").get(0);
+            String pass = regex(str,"name=\"pass\" value=\"(.+?)\"").get(0);            //
+            double jschl_answer = get_answer(str);
+            e(String.valueOf(jschl_answer));
+            Thread.sleep(3000);
+            String req = "https://" + ConnUrl.getHost() +"/cdn-cgi/l/chk_jschl?";
+            if (!TextUtils.isEmpty(s)){
+                s = Uri.encode(s);
+                req+="s="+s+"&";
+            }
+            req+="jschl_vc="+Uri.encode(jschl_vc)+"&pass="+Uri.encode(pass)+"&jschl_answer="+jschl_answer;
+            bean.setHost(req);
         }
-        req+="jschl_vc="+Uri.encode(jschl_vc)+"&pass="+Uri.encode(pass)+"&jschl_answer="+jschl_answer;
-        e("RedirectUrl",req);
-        getRedirectResponse(req);
+        e("RedirectUrl",bean.getHost());
+        getRedirectResponse(bean);
     }
 
-    private void getRedirectResponse(String req) throws IOException {
+    private void getRedirectResponse(AnswerBean answerBean) throws IOException {
         HttpURLConnection.setFollowRedirects(false);
-        mGetRedirectionConn = (HttpURLConnection) new URL(req).openConnection();
-        mGetRedirectionConn.setRequestMethod("GET");
+        mGetRedirectionConn = (HttpURLConnection) new URL(answerBean.getHost()).openConnection();
+
+//        mGetRedirectionConn.setRequestMethod(answerBean.getMethod() == AnswerBean.GET ? "GET" : "POST");
+        mGetRedirectionConn.setRequestMethod("POST");
         mGetRedirectionConn.setConnectTimeout(CONN_TIMEOUT);
         mGetRedirectionConn.setReadTimeout(CONN_TIMEOUT);
+        mGetRedirectionConn.setDoInput(true);
+        mGetRedirectionConn.setDoOutput(true);
         mGetRedirectionConn.setUseCaches(false);
         if (!TextUtils.isEmpty(mUser_agent)){
             mGetRedirectionConn.setRequestProperty("user-agent",mUser_agent);
@@ -203,7 +241,20 @@ public class Cloudflare {
             mGetRedirectionConn.setRequestProperty("cookie",listToString(mCookieList));
         }
         mGetRedirectionConn.setUseCaches(false);
+        if (answerBean.getMethod() == AnswerBean.POST){
+            mGetRedirectionConn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+        }
         mGetRedirectionConn.connect();
+        if (answerBean.getMethod() == AnswerBean.POST){
+            StringBuilder stringBuilder = new StringBuilder();
+            for(Map.Entry<String, String> entry :answerBean.getFromData().entrySet()){
+                stringBuilder.append(entry.getKey()).append("=").append(entry.getValue()).append("&");
+            }
+            stringBuilder.deleteCharAt(stringBuilder.length()-1);
+            BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(mGetRedirectionConn.getOutputStream(), "UTF-8"));
+            writer.write(stringBuilder.toString());
+            writer.close();
+        }
         switch (mGetRedirectionConn.getResponseCode()){
             case HttpURLConnection.HTTP_OK:
                 mCookieList = mCookieManager.getCookieStore().getCookies();
@@ -440,5 +491,41 @@ public class Cloudflare {
     private void e(String content){
         Log.e("cloudflare",content);
     }
+
+
+    class AnswerBean{
+
+        private String host;
+        private int method;
+        private Map<String,String> fromData = new ArrayMap<>();
+        private static final int POST = 0x01;
+        private static final int GET = 0x02;
+
+
+        public String getHost() {
+            return host;
+        }
+
+        public void setHost(String host) {
+            this.host = host;
+        }
+
+        public int getMethod() {
+            return method;
+        }
+
+        public void setMethod(int method) {
+            this.method = method;
+        }
+
+        public Map<String, String> getFromData() {
+            return fromData;
+        }
+
+        public void setFromData(Map<String, String> fromData) {
+            this.fromData = fromData;
+        }
+    }
+
 
 }
