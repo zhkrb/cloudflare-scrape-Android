@@ -225,8 +225,7 @@ public class Cloudflare {
         HttpURLConnection.setFollowRedirects(false);
         mGetRedirectionConn = (HttpURLConnection) new URL(answerBean.getHost()).openConnection();
 
-//        mGetRedirectionConn.setRequestMethod(answerBean.getMethod() == AnswerBean.GET ? "GET" : "POST");
-        mGetRedirectionConn.setRequestMethod("POST");
+        mGetRedirectionConn.setRequestMethod(answerBean.getMethod() == AnswerBean.GET ? "GET" : "POST");
         mGetRedirectionConn.setConnectTimeout(CONN_TIMEOUT);
         mGetRedirectionConn.setReadTimeout(CONN_TIMEOUT);
         mGetRedirectionConn.setDoInput(true);
