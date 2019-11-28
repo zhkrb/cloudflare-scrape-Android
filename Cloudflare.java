@@ -3,15 +3,18 @@ package io.github.nandandesai.samplenetworkmeasurement;
 import android.net.Uri;
 import android.os.Looper;
 import android.text.TextUtils;
+import android.util.ArrayMap;
 import android.util.Log;
 
 import org.mozilla.javascript.Context;
 import org.mozilla.javascript.Scriptable;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
 import java.net.CookieHandler;
 import java.net.CookieManager;
 import java.net.CookiePolicy;
@@ -27,10 +30,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class Cloudflare {
-
     private String mUrl;
     private String mUser_agent;
-    private cfCallback mCallback;
     private int mRetry_count;
     private URL ConnUrl;
     private List<HttpCookie> mCookieList;
@@ -41,9 +42,10 @@ public class Cloudflare {
 
     private static final int MAX_COUNT = 3;
     private static final int CONN_TIMEOUT = 60000;
-    private static final String ACCEPT = "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;";
+    private static final String ACCEPT = "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3";
 
     private boolean canVisit = false;
+    private boolean hasNewUrl = false;  //when cf return 301 you need to change old url to new url;
 
     public Cloudflare(String url) {
         mUrl = url;
@@ -76,7 +78,6 @@ public class Cloudflare {
         mCookieManager.setCookiePolicy(CookiePolicy.ACCEPT_ALL); //接受所有cookies
         CookieHandler.setDefault(mCookieManager);
         HttpURLConnection.setFollowRedirects(false);
-
         while (!canVisit){
             if (mRetry_count>MAX_COUNT){
                 break;
@@ -90,8 +91,9 @@ public class Cloudflare {
                 }else {
                     getVisiteCookie();
                 }
-            } catch (IOException | InterruptedException e) {
+            } catch (IOException| RuntimeException | InterruptedException e) {
                 if (mCookieList!=null){
+                    mCookieList= new ArrayList<>(mCookieList);
                     mCookieList.clear();
                 }
                 e.printStackTrace();
@@ -103,7 +105,7 @@ public class Cloudflare {
         if (callback!=null){
             Looper.prepare();
             if (canVisit){
-                callback.onSuccess(mCookieList);
+                callback.onSuccess(mCookieList,hasNewUrl,mUrl);
             }else {
                 e("Get Cookie Failed");
                 callback.onFail();
@@ -134,6 +136,15 @@ public class Cloudflare {
         switch (mGetMainConn.getResponseCode()){
             case HttpURLConnection.HTTP_OK:
                 e("MainUrl","visit website success");
+                mCookieList = mCookieManager.getCookieStore().getCookies();
+                checkCookie(mCookieList);
+                return;
+            case HttpURLConnection.HTTP_MOVED_PERM:
+                hasNewUrl = true;
+                mUrl = mGetMainConn.getHeaderField("Location");
+                mCookieList = mCookieManager.getCookieStore().getCookies();
+                checkCookie(mCookieList);
+                e("MainUrl","HTTP 301 :"+mUrl);
                 return;
             case HttpURLConnection.HTTP_FORBIDDEN:
                 e("MainUrl","IP block or cookie err");
@@ -153,7 +164,7 @@ public class Cloudflare {
                 getCheckAnswer(str);
                 break;
             default:
-
+                e("MainUrl","UnCatch Http code: "+mGetMainConn.getHeaderField("Location"));
                 break;
         }
     }
@@ -162,48 +173,115 @@ public class Cloudflare {
      * 获取值并跳转获得cookies
      * @param str
      */
-    private void getCheckAnswer(String str) throws InterruptedException, IOException {
-        String s = regex(str,"name=\"s\" value=\"(.+?)\"").get(0);   //正则取值
-        String jschl_vc = regex(str,"name=\"jschl_vc\" value=\"(.+?)\"").get(0);
-        String pass = regex(str,"name=\"pass\" value=\"(.+?)\"").get(0);            //
-        double jschl_answer = get_answer(str);
-        e(String.valueOf(jschl_answer));
-        Thread.sleep(3000);
-        String req = String.valueOf("https://"+ConnUrl.getHost())+"/cdn-cgi/l/chk_jschl?";
-        if (!TextUtils.isEmpty(s)){
-            s = Uri.encode(s);
-            req+="s="+s+"&";
+    private void getCheckAnswer(String str) throws InterruptedException, IOException,RuntimeException {
+        AnswerBean bean = new AnswerBean();
+        if (str.contains("POST")){
+            bean.setMethod(AnswerBean.POST);
+
+            ArrayList<String> param = (ArrayList<String>) regex(str,"<form id=\"challenge-form\" action=\"(.+?)\"");
+            if (param == null || param.size() == 0){
+                e("getPost param error");
+                throw new RuntimeException("getPost param error");
+            }
+            bean.setHost("https://"+ConnUrl.getHost()+param.get(0));
+            ArrayList<String> s = (ArrayList<String>) regex(str,"<input type=\"hidden\" name=\"(.+?)\" value=\"(.+?)\">");
+            if (s != null && s.size() > 0){
+                bean.getFromData().put(s.get(0),s.get(1).contains("input type=\"hidden\"") ? "" : s.get(1));
+            }
+            String jschl_vc = regex(str,"name=\"jschl_vc\" value=\"(.+?)\"").get(0);
+            String pass = regex(str,"name=\"pass\" value=\"(.+?)\"").get(0);
+            bean.getFromData().put("jschl_vc",jschl_vc);
+            bean.getFromData().put("pass",pass);
+            double jschl_answer = get_answer(str);
+            e(String.valueOf(jschl_answer));
+            Thread.sleep(3000);
+            bean.getFromData().put("jschl_answer",String.valueOf(jschl_answer));
+        }else {
+            bean.setMethod(AnswerBean.GET);
+
+            String s = regex(str,"name=\"s\" value=\"(.+?)\"").get(0);   //正则取值
+            String jschl_vc = regex(str,"name=\"jschl_vc\" value=\"(.+?)\"").get(0);
+            String pass = regex(str,"name=\"pass\" value=\"(.+?)\"").get(0);            //
+            double jschl_answer = get_answer(str);
+            e(String.valueOf(jschl_answer));
+            Thread.sleep(3000);
+            String req = "https://" + ConnUrl.getHost() +"/cdn-cgi/l/chk_jschl?";
+            if (!TextUtils.isEmpty(s)){
+                s = Uri.encode(s);
+                req+="s="+s+"&";
+            }
+            req+="jschl_vc="+Uri.encode(jschl_vc)+"&pass="+Uri.encode(pass)+"&jschl_answer="+jschl_answer;
+            bean.setHost(req);
         }
-        req+="jschl_vc="+Uri.encode(jschl_vc)+"&pass="+Uri.encode(pass)+"&jschl_answer="+jschl_answer;
-        e("RedirectUrl",req);
-        getRedirectResponse(req);
+        e("RedirectUrl",bean.getHost());
+        getRedirectResponse(bean);
     }
 
-    private void getRedirectResponse(String req) throws IOException {
+    private void getRedirectResponse(AnswerBean answerBean) throws IOException {
         HttpURLConnection.setFollowRedirects(false);
-        mGetRedirectionConn = (HttpURLConnection) new URL(req).openConnection();
-        mGetRedirectionConn.setRequestMethod("GET");
+        mGetRedirectionConn = (HttpURLConnection) new URL(answerBean.getHost()).openConnection();
+
+        mGetRedirectionConn.setRequestMethod(answerBean.getMethod() == AnswerBean.GET ? "GET" : "POST");
         mGetRedirectionConn.setConnectTimeout(CONN_TIMEOUT);
         mGetRedirectionConn.setReadTimeout(CONN_TIMEOUT);
+        mGetRedirectionConn.setDoInput(true);
+        mGetRedirectionConn.setDoOutput(true);
+        mGetRedirectionConn.setUseCaches(false);
         if (!TextUtils.isEmpty(mUser_agent)){
             mGetRedirectionConn.setRequestProperty("user-agent",mUser_agent);
         }
         mGetRedirectionConn.setRequestProperty("accept",ACCEPT);
-        mGetRedirectionConn.setRequestProperty("referer", req);
+        mGetRedirectionConn.setRequestProperty("referer", mUrl);
         if (mCookieList!=null&&mCookieList.size()>0){
             mGetRedirectionConn.setRequestProperty("cookie",listToString(mCookieList));
         }
         mGetRedirectionConn.setUseCaches(false);
+        if (answerBean.getMethod() == AnswerBean.POST){
+            mGetRedirectionConn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+        }
         mGetRedirectionConn.connect();
+        if (answerBean.getMethod() == AnswerBean.POST){
+            StringBuilder stringBuilder = new StringBuilder();
+            for(Map.Entry<String, String> entry :answerBean.getFromData().entrySet()){
+                stringBuilder.append(entry.getKey()).append("=").append(entry.getValue()).append("&");
+            }
+            stringBuilder.deleteCharAt(stringBuilder.length()-1);
+            BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(mGetRedirectionConn.getOutputStream(), "UTF-8"));
+            writer.write(stringBuilder.toString());
+            writer.close();
+        }
         switch (mGetRedirectionConn.getResponseCode()){
             case HttpURLConnection.HTTP_OK:
                 mCookieList = mCookieManager.getCookieStore().getCookies();
                 break;
             case HttpURLConnection.HTTP_MOVED_TEMP:
                 mCookieList = mCookieManager.getCookieStore().getCookies();
+                checkCookie(mCookieList);
                 break;
             default:throw new IOException("getOtherResponse Code: "+
                     mGetRedirectionConn.getResponseCode());
+        }
+    }
+
+    private void checkCookie(List<HttpCookie> cookieList) {
+        if (cookieList == null || cookieList.size() <= 1){
+            return;
+        }
+        List<HttpCookie> a = new ArrayList<>();
+        HttpCookie newestCookie = null;
+        for (int i =0;i<cookieList.size();i++){
+            if (!cookieList.get(i).getName().equals("_cfduid")){
+                continue;
+            }
+            if (newestCookie == null){
+                newestCookie = cookieList.get(i);
+                continue;
+            }
+            a.add(newestCookie);
+            newestCookie = cookieList.get(i);
+        }
+        if (a.size()>0){
+            cookieList.removeAll(a);
         }
     }
 
@@ -241,7 +319,7 @@ public class Cloudflare {
 
 
     public interface cfCallback{
-        void onSuccess(List<HttpCookie> cookieList);
+        void onSuccess(List<HttpCookie> cookieList, boolean hasNewUrl ,String newUrl);
         void onFail();
     }
 
@@ -253,42 +331,86 @@ public class Cloudflare {
                     "(.+?)=\\{\"(.+?)\"");
             String varA = s.get(0);
             String varB = s.get(1);
+            String div_cfdn = getCfdnDOM(str);
+            List<String> eval_fuc = null;
+            if (!TextUtils.isEmpty(div_cfdn)){
+                eval_fuc = checkEval(str);
+            }
+
             StringBuilder sb = new StringBuilder();
             sb.append("var t=\"").append(new URL(mUrl).getHost()).append("\";");
             sb.append("var a=");
             sb.append(regex(str,varA+"=\\{\""+varB+"\":(.+?)\\}").get(0));
             sb.append(";");
             List<String> b = regex(str,varA+"\\."+varB+"(.+?)\\;");
-            for (int i =0;i<b.size()-1;i++){
-                sb.append("a");
-                sb.append(b.get(i));
-                sb.append(";");
+            if (b != null) {
+                for (int i =0;i<b.size()-1;i++){
+                    sb.append("a");
+                    if (eval_fuc!=null&&eval_fuc.size()>0){
+                        sb.append(replaceEval(b.get(i),div_cfdn,eval_fuc));
+                    }else {
+                        sb.append(b.get(i));
+                    }
+                    sb.append(";");
+                }
             }
 
             e("add",sb.toString());
             Context rhino = Context.enter();
             rhino.setOptimizationLevel(-1);
-            try{
-                Scriptable scope = rhino.initStandardObjects();
-                a= Double.parseDouble(rhino.evaluateString(scope, sb.toString(), "JavaScript", 1, null).toString());
-                List<String> fixNum = regex(str,"toFixed\\((.+?)\\)");
-                if (fixNum!=null){
-                    String script="String("+ String.valueOf(a)+".toFixed("+fixNum.get(0)+"));";
-                    a = Double.parseDouble(rhino.evaluateString(scope, script, "JavaScript", 1, null).toString());
-                }
+            Scriptable scope = rhino.initStandardObjects();
+            a= Double.parseDouble(rhino.evaluateString(scope, sb.toString(), "JavaScript", 1, null).toString());
+            List<String> fixNum = regex(str,"toFixed\\((.+?)\\)");
+            if (fixNum!=null){
+                e("toFix",fixNum.get(0));
+                String script="String("+ a +".toFixed("+fixNum.get(0)+"));";
+                a = Double.parseDouble(rhino.evaluateString(scope, script, "JavaScript", 1, null).toString());
+            }
+            if (b !=null && b.get(b.size()-1).contains("t.length")){
                 a += new URL(mUrl).getHost().length();
-
-            }finally {
-                Context.exit();
             }
         }catch (IndexOutOfBoundsException e){
             e("answerErr","get answer error");
             e.printStackTrace();
-        }
-        catch (MalformedURLException e) {
+        } catch (MalformedURLException e) {
             e.printStackTrace();
+        }finally {
+            Context.exit();
         }
         return a;
+    }
+
+    private String replaceEval(String s, String div_cfdn, List<String> eval_fuc) {
+        List<String> eval = regex(s,"eval\\(eval\\((.+?)");
+        if (eval==null||eval.size()==0){
+            return s;
+        }
+        s = s.replace(eval_fuc.get(0),div_cfdn);
+        s+=";"+eval_fuc.get(1);
+        return s;
+    }
+
+    private List<String> checkEval(String str) {
+        List<String> evalDom = regex(str,"function\\(p\\)\\{var p = (.+?)\\;(.+?)\\;");
+        if (evalDom==null||evalDom.size()==0){
+            return null;
+        }else {
+            return evalDom;
+        }
+    }
+
+    private String getCfdnDOM(String str) {
+        List<String> dom = regex(str,"k \\= \\'(.+?)\\'\\;");
+        if (dom != null && dom.size() > 0){
+            String cfdn = regex(str,"id=\""+dom.get(0)+"\">(.+?)</div>").get(0);
+            if (!TextUtils.isEmpty(cfdn)){
+                return cfdn;
+            }else {
+                return "";
+            }
+        }else {
+            return "";
+        }
     }
 
     /**
@@ -365,5 +487,41 @@ public class Cloudflare {
     private void e(String content){
         Log.e("cloudflare",content);
     }
+
+
+    class AnswerBean{
+
+        private String host;
+        private int method;
+        private Map<String,String> fromData = new ArrayMap<>();
+        private static final int POST = 0x01;
+        private static final int GET = 0x02;
+
+
+        public String getHost() {
+            return host;
+        }
+
+        public void setHost(String host) {
+            this.host = host;
+        }
+
+        public int getMethod() {
+            return method;
+        }
+
+        public void setMethod(int method) {
+            this.method = method;
+        }
+
+        public Map<String, String> getFromData() {
+            return fromData;
+        }
+
+        public void setFromData(Map<String, String> fromData) {
+            this.fromData = fromData;
+        }
+    }
+
 
 }
