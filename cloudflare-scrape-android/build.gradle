@@ -1,0 +1,45 @@
+apply plugin: 'com.android.library'
+apply plugin: 'com.novoda.bintray-release'
+
+android {
+    compileSdkVersion 29
+    buildToolsVersion "29.0.1"
+
+
+    defaultConfig {
+        minSdkVersion 21
+        targetSdkVersion 29
+        versionCode 1
+        versionName "1.0"
+
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        consumerProguardFiles 'consumer-rules.pro'
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    lintOptions {
+        disable 'InvalidPackage'
+    }
+}
+
+dependencies {
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+    implementation 'com.github.mozilla:rhino:Rhino1_7_11_Release'
+}
+
+publish {
+    userOrg = 'zhkrb' // bintray用户名
+    repoName = 'cloudflare-scrape-android' // bintray仓库名
+    groupId = 'com.zhkrb.cloudflare-scrape-android' // 决定最后依赖的路径
+    artifactId = 'scrape-rhino' // 决定最后依赖的名称
+    publishVersion = '0.1.1' // 决定最后依赖的版本号
+    desc = 'bypass cloudflare DDOS page' // 描述
+    website = 'https://github.com/zhkrb/cloudflare-scrape-Android' // 项目网站，可以用 Github 地址
+    dryRun = false // true-仅运行  false-运行+上传
+}
