@@ -16,7 +16,7 @@ Inspired by [cloudflare-scrape](https://github.com/Anorov/cloudflare-scrape).
 <dependency>
   <groupId>com.zhkrb.cloudflare-scrape-android</groupId>
   <artifactId>scrape-v8</artifactId>
-  <version>0.1.1</version>
+  <version>0.1.2</version>
   <type>pom</type>
 </dependency>
 ```
@@ -24,7 +24,7 @@ Inspired by [cloudflare-scrape](https://github.com/Anorov/cloudflare-scrape).
 #### Gradle via JCenter
 
 ``` groovy
-implementation 'com.zhkrb.cloudflare-scrape-android:scrape-v8:0.1.1'
+implementation 'com.zhkrb.cloudflare-scrape-android:scrape-v8:0.1.2'
 ```
 ### Other Branch  
 If you want to use Mozilla's [Rhino](https://github.com/mozilla/rhino) (Lighter than the v8 engine), use this [branch](https://github.com/zhkrb/cloudflare-scrape-Android/tree/Rhino-Dependent), is rewrite for [NandanDesai](https://github.com/NandanDesai), thanks for his code submission
@@ -44,7 +44,7 @@ Step 2. Add the dependency
 <dependency>
   <groupId>com.zhkrb.cloudflare-scrape-android</groupId>
   <artifactId>scrape-rhino</artifactId>
-  <version>0.1.1</version>
+  <version>0.1.2</version>
   <type>pom</type>
 </dependency>
 ```
@@ -61,7 +61,7 @@ allprojects {
 ```
 Step 2. Add the dependency
 ``` groovy
-implementation 'com.zhkrb.cloudflare-scrape-android:scrape-rhino:0.1.1'
+implementation 'com.zhkrb.cloudflare-scrape-android:scrape-rhino:0.1.2'
 ```
 ### Example  
 ```java
