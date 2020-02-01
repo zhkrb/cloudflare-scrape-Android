@@ -144,6 +144,7 @@ public class Cloudflare {
                 checkCookie(mCookieList);
                 return;
             case HttpURLConnection.HTTP_MOVED_PERM:
+            case HttpURLConnection.HTTP_MOVED_TEMP:
                 mUrl = mGetMainConn.getHeaderField("Location");
                 mCookieList = mCookieManager.getCookieStore().getCookies();
                 checkCookie(mCookieList);
