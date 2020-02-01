@@ -38,7 +38,7 @@ publish {
     repoName = 'cloudflare-scrape-android' // bintray仓库名
     groupId = 'com.zhkrb.cloudflare-scrape-android' // 决定最后依赖的路径
     artifactId = 'scrape-rhino' // 决定最后依赖的名称
-    publishVersion = '0.1.1' // 决定最后依赖的版本号
+    publishVersion = '0.1.2' // 决定最后依赖的版本号
     desc = 'bypass cloudflare DDOS page' // 描述
     website = 'https://github.com/zhkrb/cloudflare-scrape-Android' // 项目网站，可以用 Github 地址
     dryRun = false // true-仅运行  false-运行+上传
