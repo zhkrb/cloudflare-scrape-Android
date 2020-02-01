@@ -6,7 +6,7 @@ Inspired by [cloudflare-scrape](https://github.com/Anorov/cloudflare-scrape).
 ## GET START  
 ### Download
 
-- [maven][1]
+- [JCenter][1]
 
 [1]: https://bintray.com/zhkrb/cloudflare-scrape-android/scrape-v8/
 
@@ -33,11 +33,11 @@ If you want to use Mozilla's [Rhino](https://github.com/mozilla/rhino) (Lighter 
 Step 1. Add the JitPack repository to your build file
 ```xml
 <repositories>
-		<repository>
-		    <id>jitpack.io</id>
-		    <url>https://jitpack.io</url>
-		</repository>
-	</repositories>
+  <repository>
+  <id>jitpack.io</id>
+  <url>https://jitpack.io</url>
+  </repository>
+</repositories>
 ```
 Step 2. Add the dependency
 ```xml
@@ -53,11 +53,11 @@ Step 1. Add the JitPack repository to your build file
 Add it in your root build.gradle at the end of repositories:
 ```groovy
 allprojects {
-		repositories {
-			...
-			maven { url 'https://jitpack.io' }
-		}
+	repositories {
+		...
+		maven { url 'https://jitpack.io' }
 	}
+}
 ```
 Step 2. Add the dependency
 ``` groovy
