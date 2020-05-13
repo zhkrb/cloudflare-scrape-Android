@@ -179,7 +179,7 @@ public class Cloudflare {
         if (str.contains("POST")){
             bean.setMethod(AnswerBean.POST);
 
-            ArrayList<String> param = (ArrayList<String>) regex(str,"<form id=\"challenge-form\" action=\"(.+?)\"");
+            ArrayList<String> param = (ArrayList<String>) regex(str,"<form class=\"challenge-form\" id=\"challenge-form\" action=\"(.+?)\"");
             if (param == null || param.size() == 0){
                 e("getPost param error");
                 throw new RuntimeException("getPost param error");
@@ -189,7 +189,7 @@ public class Cloudflare {
             if (s != null && s.size() > 0){
                 bean.getFromData().put(s.get(0),s.get(1).contains("input type=\"hidden\"") ? "" : s.get(1));
             }
-            String jschl_vc = regex(str,"name=\"jschl_vc\" value=\"(.+?)\"").get(0);
+            String jschl_vc = regex(str,"<input type=\"hidden\" value=\"(.+?)\" id=\"jschl-vc\"").get(0);
             String pass = regex(str,"name=\"pass\" value=\"(.+?)\"").get(0);
             bean.getFromData().put("jschl_vc",jschl_vc);
             bean.getFromData().put("pass",pass);
