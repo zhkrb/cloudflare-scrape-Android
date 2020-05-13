@@ -95,7 +95,7 @@ public class Cloudflare {
                 }else {
                     getVisiteCookie();
                 }
-            } catch (IOException| RuntimeException | InterruptedException e) {
+            } catch (IOException | RuntimeException | InterruptedException e) {
                 if (mCookieList!=null){
                     mCookieList= new ArrayList<>(mCookieList);
                     mCookieList.clear();
@@ -177,12 +177,12 @@ public class Cloudflare {
      * 获取值并跳转获得cookies
      * @param str
      */
-    private void getCheckAnswer(String str) throws InterruptedException, IOException,RuntimeException {
+    private void getCheckAnswer(String str) throws InterruptedException, IOException, RuntimeException {
         AnswerBean bean = new AnswerBean();
         if (str.contains("POST")){
             bean.setMethod(AnswerBean.POST);
 
-            ArrayList<String> param = (ArrayList<String>) regex(str,"<form id=\"challenge-form\" action=\"(.+?)\"");
+            ArrayList<String> param = (ArrayList<String>) regex(str,"<form class=\"challenge-form\" id=\"challenge-form\" action=\"(.+?)\"");
             if (param == null || param.size() == 0){
                 e("getPost param error");
                 throw new RuntimeException("getPost param error");
@@ -192,14 +192,14 @@ public class Cloudflare {
             if (s != null && s.size() > 0){
                 bean.getFromData().put(s.get(0),s.get(1).contains("input type=\"hidden\"") ? "" : s.get(1));
             }
-            String jschl_vc = regex(str,"name=\"jschl_vc\" value=\"(.+?)\"").get(0);
+            String jschl_vc = regex(str,"<input type=\"hidden\" value=\"(.+?)\" id=\"jschl-vc\"").get(0);
             String pass = regex(str,"name=\"pass\" value=\"(.+?)\"").get(0);
             bean.getFromData().put("jschl_vc",jschl_vc);
             bean.getFromData().put("pass",pass);
             double jschl_answer = get_answer(str);
             e(String.valueOf(jschl_answer));
             Thread.sleep(3000);
-            bean.getFromData().put("jschl_answer",String.valueOf(jschl_answer));
+            bean.getFromData().put("jschl_answer", String.valueOf(jschl_answer));
         }else {
             bean.setMethod(AnswerBean.GET);
 
@@ -214,7 +214,7 @@ public class Cloudflare {
                 s = Uri.encode(s);
                 req+="s="+s+"&";
             }
-            req+="jschl_vc="+Uri.encode(jschl_vc)+"&pass="+Uri.encode(pass)+"&jschl_answer="+jschl_answer;
+            req+="jschl_vc="+ Uri.encode(jschl_vc)+"&pass="+ Uri.encode(pass)+"&jschl_answer="+jschl_answer;
             bean.setHost(req);
         }
         e("RedirectUrl",bean.getHost());
@@ -323,7 +323,7 @@ public class Cloudflare {
 
 
     public interface cfCallback{
-        void onSuccess(List<HttpCookie> cookieList, boolean hasNewUrl ,String newUrl);
+        void onSuccess(List<HttpCookie> cookieList, boolean hasNewUrl, String newUrl);
         void onFail();
     }
 
@@ -331,7 +331,7 @@ public class Cloudflare {
         double a = 0;
 
         try {
-            List<String> s = regex(str,"var s,t,o,p,b,r,e,a,k,i,n,g,f, " +
+            List<String> s = regex(str,"var s,t,o,p, b,r,e,a,k,i,n,g,f, " +
                     "(.+?)=\\{\"(.+?)\"");
             String varA = s.get(0);
             String varB = s.get(1);
@@ -463,7 +463,7 @@ public class Cloudflare {
      * @param list  HttpCookie列表
      * @return Hashmap
      */
-    public static Map<String,String> List2Map(List<HttpCookie> list){
+    public static Map<String, String> List2Map(List<HttpCookie> list){
         Map<String, String> map = new HashMap<>();
         try {
             if (list != null) {
@@ -483,7 +483,7 @@ public class Cloudflare {
         return map;
     }
 
-    private void e(String tag,String content){
+    private void e(String tag, String content){
         Log.e(tag,content);
     }
 
@@ -496,7 +496,7 @@ public class Cloudflare {
 
         private String host;
         private int method;
-        private Map<String,String> fromData = new ArrayMap<>();
+        private Map<String, String> fromData = new ArrayMap<>();
         private static final int POST = 0x01;
         private static final int GET = 0x02;
 
