@@ -328,7 +328,7 @@ public class Cloudflare {
         double a = 0;
 
         try {
-            List<String> s = regex(str,"var s,t,o,p,b,r,e,a,k,i,n,g,f, " +
+            List<String> s = regex(str,"var s,t,o,p, b,r,e,a,k,i,n,g,f, " +
                     "(.+?)=\\{\"(.+?)\"");
             String varA = s.get(0);
             String varB = s.get(1);
