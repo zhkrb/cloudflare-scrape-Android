@@ -44,7 +44,7 @@ Step 2. Add the dependency
 <dependency>
   <groupId>com.zhkrb.cloudflare-scrape-android</groupId>
   <artifactId>scrape-rhino</artifactId>
-  <version>0.1.2</version>
+  <version>0.1.4</version>
   <type>pom</type>
 </dependency>
 ```
@@ -61,7 +61,7 @@ allprojects {
 ```
 Step 2. Add the dependency
 ``` groovy
-implementation 'com.zhkrb.cloudflare-scrape-android:scrape-rhino:0.1.2'
+implementation 'com.zhkrb.cloudflare-scrape-android:scrape-rhino:0.1.4'
 ```
 ### Example  
 ```java
