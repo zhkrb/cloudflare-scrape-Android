@@ -25,7 +25,7 @@ Step 2. Add the dependency
 <dependency>
   <groupId>com.zhkrb.cloudflare-scrape-android</groupId>
   <artifactId>scrape-rhino</artifactId>
-  <version>0.1.2</version>
+  <version>0.1.3</version>
   <type>pom</type>
 </dependency>
 ```
@@ -43,7 +43,7 @@ Add it in your root build.gradle at the end of repositories:
 ```    
 ##### Step 2. Add the dependency
 ```
-compile 'com.zhkrb.cloudflare-scrape-android:scrape-rhino:0.1.2'
+compile 'com.zhkrb.cloudflare-scrape-android:scrape-rhino:0.1.3'
 ```
 
 
