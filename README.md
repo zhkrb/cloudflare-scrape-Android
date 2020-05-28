@@ -88,5 +88,7 @@ Map<String, String> cookies = Cloudflare.List2Map(cookies);
 ```  
 ## Dependent project  
 [eclipsesource/J2V8](https://github.com/eclipsesource/J2V8)  
+[rhino](https://github.com/mozilla/rhino)
+
 ## issues
 If you find any issues, please file a bug after checking for duplicates so I can fix it.
