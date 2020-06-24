@@ -1,2 +1,2 @@
-include ':app', ':cloudflare-scrape-rhino', ':cloudflare-scrape-v8'
+include ':app', ':cloudflare-scrape-rhino', ':cloudflare-scrape-v8', ':cloudflare-scrape-webview'
 rootProject.name='Cloudflare'

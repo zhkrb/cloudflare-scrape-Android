@@ -93,7 +93,7 @@ public class Cloudflare {
                     canVisit=true;
                     break;
                 }else {
-                    getVisiteCookie();
+                    getVisitCookie();
                 }
             } catch (IOException | RuntimeException | InterruptedException e) {
                 if (mCookieList!=null){
@@ -112,7 +112,7 @@ public class Cloudflare {
                 callback.onSuccess(mCookieList,hasNewUrl,mUrl);
             }else {
                 e("Get Cookie Failed");
-                callback.onFail();
+                callback.onFail("Retries exceeded the limit");
             }
 
 
@@ -121,7 +121,7 @@ public class Cloudflare {
 
 
 
-    private void getVisiteCookie() throws IOException, InterruptedException {
+    private void getVisitCookie() throws IOException, InterruptedException {
         ConnUrl = new URL(mUrl);
         mGetMainConn = (HttpURLConnection) ConnUrl.openConnection();
         mGetMainConn.setRequestMethod("GET");
@@ -145,6 +145,7 @@ public class Cloudflare {
                 return;
             case HttpURLConnection.HTTP_MOVED_PERM:
             case HttpURLConnection.HTTP_MOVED_TEMP:
+                hasNewUrl = true;
                 mUrl = mGetMainConn.getHeaderField("Location");
                 mCookieList = mCookieManager.getCookieStore().getCookies();
                 checkCookie(mCookieList);
@@ -324,7 +325,7 @@ public class Cloudflare {
 
     public interface cfCallback{
         void onSuccess(List<HttpCookie> cookieList, boolean hasNewUrl, String newUrl);
-        void onFail();
+        void onFail(String msg);
     }
 
     private double get_answer(String str) {  //取值
@@ -481,6 +482,10 @@ public class Cloudflare {
         }
 
         return map;
+    }
+
+    public void cancel(){
+        closeAllConn();
     }
 
     private void e(String tag, String content){
