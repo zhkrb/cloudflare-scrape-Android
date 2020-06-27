@@ -2,7 +2,6 @@ package com.zhkrb.cloudflare_scrape_webview.dialogFragment;
 
 import android.os.Bundle;
 import android.os.Handler;
-import android.os.Looper;
 import android.os.Message;
 import android.text.TextUtils;
 import android.view.Gravity;
@@ -18,15 +17,19 @@ import android.widget.ProgressBar;
 import androidx.annotation.NonNull;
 import androidx.constraintlayout.widget.ConstraintLayout;
 
+import com.zhkrb.cloudflare_scrape_webview.CfCallback;
 import com.zhkrb.cloudflare_scrape_webview.Cloudflare;
 import com.zhkrb.cloudflare_scrape_webview.util.CheckUtil;
-import com.zhkrb.cloudflare_scrape_webview.util.CovertUtil;
+import com.zhkrb.cloudflare_scrape_webview.util.ConvertUtil;
 import com.zhkrb.cloudflare_scrape_webview.util.LogUtil;
+import com.zhkrb.cloudflare_scrape_webview.util.WordUtil;
 import com.zhkrb.cloudflare_scrape_webview.webClient.AdvanceWebClient;
 import com.zhkrb.cloudflare_scrape_webview.R;
 
 import java.lang.ref.WeakReference;
 import java.net.HttpCookie;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.List;
 
 import static android.view.View.INVISIBLE;
@@ -34,7 +37,7 @@ import static android.view.View.VISIBLE;
 
 public class WebViewDialog extends AbsDialogFragment {
 
-    private Cloudflare.CfCallback mListener;
+    private CfCallback mListener;
     private WebView mWebView;
     private AdvanceWebClient mAdvanceWebClient;
     private ProgressBar mProgressBar;
@@ -43,7 +46,7 @@ public class WebViewDialog extends AbsDialogFragment {
     private Animation mShowAnim;
     private Animation mHideAnim;
 
-    private String mUrl;
+    private URL mUrl;
     private String mUser_agent;
     private boolean isOnBackpress = true;
     private int mRetry_count;
@@ -90,11 +93,11 @@ public class WebViewDialog extends AbsDialogFragment {
         }
         if (bundle == null){
             isOnBackpress = false;
-            mListener.onFail("No bundle param");
+            mListener.onFail(Cloudflare.ERR_BUNDLE_PARAM,WordUtil.getString(mContext,R.string.nobundle));
             this.dismissAllowingStateLoss();
             return;
         }
-        mUrl = bundle.getString("url","");
+        String url = bundle.getString("url","");
         mUser_agent = bundle.getString("ua","");
         if (TextUtils.isEmpty(mUser_agent)){
             mUser_agent = USER_AGENT;
@@ -104,10 +107,20 @@ public class WebViewDialog extends AbsDialogFragment {
         mHandler = new MyHandler(this);
         mShowAnim = AnimationUtils.loadAnimation(mContext,R.anim.right_to_left_enter);
         mHideAnim = AnimationUtils.loadAnimation(mContext,R.anim.left_to_right_exit);
+        try {
+            mUrl = new URL(url);
+        } catch (MalformedURLException e) {
+            e.printStackTrace();
+            LogUtil.e("Error url : " + url);
+            cancelAll();
+            mListener.onFail(Cloudflare.ERR_URL,WordUtil.getString(mContext,R.string.urlerr));
+            dismissAllowingStateLoss();
+            return;
+        }
 
         mCheckUtil = new CheckUtil();
         mCheckUtil.setCheckListener(mCheckListener);
-        mCheckUtil.checkVisit(mUrl,mUser_agent);
+        mCheckUtil.checkVisit("https://" + mUrl.getHost(),mUser_agent);
     }
 
     private void initWebView(){
@@ -125,14 +138,16 @@ public class WebViewDialog extends AbsDialogFragment {
         mLayout.addView(mWebView,-1);
         mAdvanceWebClient = new AdvanceWebClient(getContext(), mWebView,mUser_agent);
         mAdvanceWebClient.setListener(mLoginSuccessListener);
-        mAdvanceWebClient.initWebView(mUrl);
+        mAdvanceWebClient.initWebView("https://" + mUrl.getHost());
     }
 
     private void reload() {
         mAdvanceWebClient.getCookieManager().removeAllCookies(null);
+        mAdvanceWebClient.setUrl("https://" + mUrl.getHost());
         mWebView.stopLoading();
-        mAdvanceWebClient.setFailed(false);
-        mWebView.loadUrl(mUrl);
+        mWebView.clearCache(true);
+        mAdvanceWebClient.reset();
+        mWebView.loadUrl("https://" + mUrl.getHost());
     }
 
     private void showWebView() {
@@ -169,13 +184,13 @@ public class WebViewDialog extends AbsDialogFragment {
         }
 
         if (isOnBackpress){
-            mListener.onFail("getCookie cancel");
+            mListener.onFail(Cloudflare.ERR_CANCEL,"getCookie cancel");
         }
     }
 
 
 
-    public void setListener(Cloudflare.CfCallback callback) {
+    public void setListener(CfCallback callback) {
         mListener = callback;
     }
 
@@ -202,28 +217,38 @@ public class WebViewDialog extends AbsDialogFragment {
         @Override
         public void onChangeNewUrl(String url) {
             hasNewUrl = true;
-            mUrl = url;
-            mCheckUtil.checkVisit(mUrl,mUser_agent);
+            try {
+                mUrl = new URL(url);
+            } catch (MalformedURLException e) {
+                e.printStackTrace();
+                LogUtil.e("Error url : " + url);
+                cancelAll();
+                mListener.onFail(Cloudflare.ERR_URL,WordUtil.getString(mContext,R.string.urlerr));
+                dismissAllowingStateLoss();
+                return;
+            }
+            mCheckUtil.checkVisit("https://" + mUrl.getHost(),mUser_agent);
         }
     };
 
     private void getCookieSuccess(List<HttpCookie> obj) {
         isOnBackpress = false;
-        mListener.onSuccess(obj,hasNewUrl,mUrl);
+        mListener.onSuccess(obj,hasNewUrl,mUrl.getHost());
         dismissAllowingStateLoss();
     }
 
     private void getCookieFail(){
         isOnBackpress = false;
-        mListener.onFail("Retries exceeded the limit");
+        mListener.onFail(Cloudflare.ERR_EXCEED_LIMIT,WordUtil.getString(mContext,R.string.exceedlimit)
+        );
     }
 
     private AdvanceWebClient.LoginSuccessListener mLoginSuccessListener = new AdvanceWebClient.LoginSuccessListener() {
         @Override
         public void onSuccess(String cookie) {
             mHandler.sendEmptyMessage(0x01);
-            mCheckUtil.setCookieList(CovertUtil.String2List(cookie));
-            mCheckUtil.checkVisit(mUrl,mUser_agent);
+            mCheckUtil.setCookieList(ConvertUtil.String2List(cookie));
+            mCheckUtil.checkVisit("https://" + mUrl.getHost(),mUser_agent);
         }
 
         @Override
@@ -234,7 +259,7 @@ public class WebViewDialog extends AbsDialogFragment {
         @Override
         public void onFail() {
             mHandler.sendEmptyMessage(0x01);
-            mCheckUtil.checkVisit(mUrl,mUser_agent);
+            mCheckUtil.checkVisit("https://" + mUrl.getHost(),mUser_agent);
         }
     };
 

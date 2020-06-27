@@ -8,7 +8,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class CovertUtil {
+public class ConvertUtil {
 
     /**
      * 转换list为 ; 符号链接的字符串

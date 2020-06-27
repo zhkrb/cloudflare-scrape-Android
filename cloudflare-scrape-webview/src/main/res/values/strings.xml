@@ -1,3 +1,6 @@
 <resources>
     <string name="app_name">cloudflare-scrape-webview</string>
+    <string name="nobundle">No bundle param</string>
+    <string name="urlerr">Url format error</string>
+    <string name="exceedlimit">Retries exceeded the limit</string>
 </resources>

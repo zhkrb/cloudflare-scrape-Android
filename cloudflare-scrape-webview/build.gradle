@@ -29,9 +29,6 @@ dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
 
     implementation 'androidx.appcompat:appcompat:1.1.0'
-    testImplementation 'junit:junit:4.12'
-    androidTestImplementation 'androidx.test.ext:junit:1.1.1'
-    androidTestImplementation 'androidx.test.espresso:espresso-core:3.2.0'
 
     implementation 'androidx.constraintlayout:constraintlayout:1.1.3'
 }
@@ -41,7 +38,7 @@ publish {
     repoName = 'cloudflare-scrape-android' // bintray仓库名
     groupId = 'com.zhkrb.cloudflare-scrape-android' // 决定最后依赖的路径
     artifactId = 'scrape-webview' // 决定最后依赖的名称
-    publishVersion = '0.0.1' // 决定最后依赖的版本号
+    publishVersion = '0.0.2' // 决定最后依赖的版本号
     desc = 'bypass cloudflare DDOS page' // 描述
     website = 'https://github.com/zhkrb/cloudflare-scrape-Android' // 项目网站，可以用 Github 地址
     dryRun = false // true-仅运行  false-运行+上传

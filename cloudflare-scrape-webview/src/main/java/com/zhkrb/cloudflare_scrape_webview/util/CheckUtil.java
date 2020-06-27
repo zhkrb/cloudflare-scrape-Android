@@ -1,7 +1,5 @@
 package com.zhkrb.cloudflare_scrape_webview.util;
 
-import android.os.Looper;
-
 import java.io.IOException;
 import java.net.CookieHandler;
 import java.net.CookieManager;
@@ -72,7 +70,7 @@ public class CheckUtil {
         mGetMainConn.setRequestProperty("accept",ACCEPT);
         mGetMainConn.setRequestProperty("referer", url);
         if (mCookieList!=null&&mCookieList.size()>0){
-            mGetMainConn.setRequestProperty("cookie",CovertUtil.listToString(mCookieList));
+            mGetMainConn.setRequestProperty("cookie", ConvertUtil.listToString(mCookieList));
         }
         mGetMainConn.setUseCaches(false);
         mGetMainConn.connect();

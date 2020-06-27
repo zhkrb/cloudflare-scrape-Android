@@ -6,10 +6,13 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import com.zhkrb.cloudflare_scrape_webview.dialogFragment.WebViewDialog;
 import java.lang.ref.WeakReference;
-import java.net.HttpCookie;
-import java.util.List;
 
 public class Cloudflare {
+
+    public static final int ERR_BUNDLE_PARAM = 0x101;
+    public static final int ERR_URL = 0x102;
+    public static final int ERR_CANCEL = 0x103;
+    public static final int ERR_EXCEED_LIMIT = 0x104;
 
     private WeakReference<Context> mContext;
     private String mUrl;
@@ -18,12 +21,12 @@ public class Cloudflare {
     private CfCallback mCfCallback;
     private WebViewDialog viewDialog;
 
-    public Cloudflare(Context context, String url) {
+    public Cloudflare(Context context,@NonNull String url) {
         mContext = new WeakReference<>(context);
         mUrl = url;
     }
 
-    public Cloudflare(Context context, String url, String user_agent) {
+    public Cloudflare(Context context,@NonNull String url, String user_agent) {
         mContext = new WeakReference<>(context);
         mUrl = url;
         mUser_agent = user_agent;
@@ -57,11 +60,6 @@ public class Cloudflare {
 
     protected WebViewDialog getViewDialog(){
         return new WebViewDialog();
-    }
-
-    public interface CfCallback{
-        void onSuccess(List<HttpCookie> cookieList, boolean hasNewUrl, String newUrl);
-        void onFail(String msg);
     }
 
     public void cancel(){

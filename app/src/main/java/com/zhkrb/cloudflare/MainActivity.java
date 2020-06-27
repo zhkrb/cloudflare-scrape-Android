@@ -87,7 +87,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 updateImageState(0x02);
                 com.zhkrb.cloudflare_scrape_webview.Cloudflare cloudflare2 =
                         new com.zhkrb.cloudflare_scrape_webview.Cloudflare(this,url);
-                cloudflare2.setCfCallback(new com.zhkrb.cloudflare_scrape_webview.Cloudflare.CfCallback() {
+                cloudflare2.setCfCallback(new com.zhkrb.cloudflare_scrape_webview.CfCallback() {
                     @Override
                     public void onSuccess(List<HttpCookie> cookieList, boolean hasNewUrl, String newUrl) {
                         updateImageState(0x03);
@@ -95,7 +95,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     }
 
                     @Override
-                    public void onFail(String msg) {
+                    public void onFail(int code,String msg) {
                         updateImageState(0x04);
                         setText(msg);
                     }
