@@ -1,6 +1,8 @@
 # cloudflare-scrape-Android  
 A tool to bypass the Cloudflare DDOS page.  
 
+[ ![Download](https://api.bintray.com/packages/zhkrb/cloudflare-scrape-android/scrape-webview/images/download.svg?version=0.0.2) ](https://bintray.com/zhkrb/cloudflare-scrape-android/scrape-webview/0.0.2/link)
+
 #### Notice
 `scrape-v8` and `scrape-rhino` is discarded, please use `scrape-webview`.
 
