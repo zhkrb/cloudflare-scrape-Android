@@ -10,14 +10,12 @@ import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
-import android.widget.ProgressBar;
 
 import androidx.annotation.Nullable;
 
 import com.zhkrb.cloudflare_scrape_webview.util.LogUtil;
 
 import java.lang.ref.WeakReference;
-import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -29,6 +27,7 @@ public class AdvanceWebClient extends WebViewClient {
     private CancelTask mTimerTask;
     private LoginSuccessListener mListener;
     private String mUrl;
+    private String mOriginUrl;
     private static final String APP_CACAHE_DIRNAME = "/webcache";
     private static final int TIME_DELAY = 45000;
     private String ua;
@@ -47,13 +46,14 @@ public class AdvanceWebClient extends WebViewClient {
         ua = userAgent;
     }
 
-    public void initWebView(String url) {
+    public void initWebView(String originUrl,String url) {
         if (mListener == null) {
             throw new RuntimeException("must set listener");
         }
         if (mContext.get() == null) {
             throw new RuntimeException("mContext not find");
         }
+        mOriginUrl = originUrl;
         mUrl = url;
         WebSettings webSettings = mWebView.getSettings();
         webSettings.setJavaScriptEnabled(true);
@@ -81,7 +81,7 @@ public class AdvanceWebClient extends WebViewClient {
         mCookieManager = CookieManager.getInstance();
         mCookieManager.removeAllCookies(null);
 
-        mWebView.loadUrl(mUrl);
+        mWebView.loadUrl(mOriginUrl);
     }
 
     public CookieManager getCookieManager() {
@@ -90,6 +90,10 @@ public class AdvanceWebClient extends WebViewClient {
 
     public void setUrl(String url) {
         mUrl = url;
+    }
+
+    public void setOriginUrl(String originUrl) {
+        mOriginUrl = originUrl;
     }
 
     private class CancelTask extends TimerTask{

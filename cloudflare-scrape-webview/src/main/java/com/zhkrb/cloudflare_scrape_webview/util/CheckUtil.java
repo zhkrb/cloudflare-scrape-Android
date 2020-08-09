@@ -24,6 +24,8 @@ public class CheckUtil {
     private boolean canVisit = false;
     private boolean hasNewUrl = false;
 
+    private boolean cancel = false;
+
     public CheckUtil() {
     }
 
@@ -155,8 +157,15 @@ public class CheckUtil {
     }
 
     public void cancel() {
+        cancel = true;
         closeAllConntion();
     }
+
+    public boolean isCancel() {
+        return cancel;
+    }
+
+
 
     public interface CheckListener{
         void onSuccess(List<HttpCookie> cookieList);

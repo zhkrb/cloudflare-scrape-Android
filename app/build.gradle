@@ -36,6 +36,8 @@ dependencies {
     androidTestImplementation 'androidx.test:runner:1.2.0'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.2.0'
 
+    implementation 'org.jsoup:jsoup:1.11.3'
+
     api project(':cloudflare-scrape-rhino')
     api project(':cloudflare-scrape-v8')
     api project(':cloudflare-scrape-webview')

@@ -7,14 +7,19 @@ import android.text.TextUtils;
 import android.text.method.ScrollingMovementMethod;
 import android.view.View;
 import android.widget.AutoCompleteTextView;
-import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.RadioGroup;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.zhkrb.cloudflare_scrape.Cloudflare;
+import com.zhkrb.cloudflare_scrape_webview.util.ConvertUtil;
+import com.zhkrb.cloudflare_scrape_webview.util.LogUtil;
 
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+
+import java.io.IOException;
 import java.net.HttpCookie;
 import java.util.List;
 
@@ -24,6 +29,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private RadioGroup mRadioGroup;
     private AutoCompleteTextView mTextView;
     private TextView mResultTextView;
+
+    private static final String ua = "Mozilla/5.0 (Linux; Android 6.0.1; SM-G920V Build/MMB29K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/52.0.2743.98 Mobile Safari/537.36";
+
 
 
     @Override
@@ -51,6 +59,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             case R.id.btn1:
                 updateImageState(0x02);
                 Cloudflare cloudflare = new Cloudflare(url);
+                cloudflare.setUser_agent(ua);
                 cloudflare.getCookies(new Cloudflare.cfCallback() {
                     @Override
                     public void onSuccess(List<HttpCookie> cookieList, boolean hasNewUrl, String newUrl) {
@@ -69,6 +78,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 updateImageState(0x02);
                 com.zhkrb.cloudflare_scrape_android.Cloudflare cloudflare1 =
                         new com.zhkrb.cloudflare_scrape_android.Cloudflare(url);
+                cloudflare1.setUser_agent(ua);
                 cloudflare1.getCookies(new com.zhkrb.cloudflare_scrape_android.Cloudflare.cfCallback() {
                     @Override
                     public void onSuccess(List<HttpCookie> cookieList, boolean hasNewUrl, String newUrl) {
@@ -87,11 +97,25 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 updateImageState(0x02);
                 com.zhkrb.cloudflare_scrape_webview.Cloudflare cloudflare2 =
                         new com.zhkrb.cloudflare_scrape_webview.Cloudflare(this,url);
+                cloudflare2.setUser_agent(ua);
                 cloudflare2.setCfCallback(new com.zhkrb.cloudflare_scrape_webview.CfCallback() {
                     @Override
                     public void onSuccess(List<HttpCookie> cookieList, boolean hasNewUrl, String newUrl) {
                         updateImageState(0x03);
                         setText(cookieList,hasNewUrl,newUrl);
+
+                        new Thread(() -> {
+                            try {
+                                Document document = Jsoup.connect(url).userAgent(ua).cookies(ConvertUtil.List2Map(cookieList)).timeout(30000)
+                                        .get();
+                                LogUtil.e(document.toString());
+                                runOnUiThread(() -> Toast.makeText(getApplicationContext(),"jsoup test success",Toast.LENGTH_SHORT).show());
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                                runOnUiThread(() -> Toast.makeText(getApplicationContext(),"jsoup test failed",Toast.LENGTH_SHORT).show());
+                            }
+                        }).start();
+
                     }
 
                     @Override
