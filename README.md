@@ -20,7 +20,7 @@ Inspired by [cloudflare-scrape](https://github.com/Anorov/cloudflare-scrape).
 <dependency>
   <groupId>com.zhkrb.cloudflare-scrape-android</groupId>
   <artifactId>scrape-webview</artifactId>
-  <version>0.0.3</version>
+  <version>0.0.4</version>
   <type>pom</type>
 </dependency>
 ```
@@ -28,7 +28,7 @@ Inspired by [cloudflare-scrape](https://github.com/Anorov/cloudflare-scrape).
 #### Gradle via JCenter
 
 ``` groovy
-implementation 'com.zhkrb.cloudflare-scrape-android:scrape-webview:0.0.3'
+implementation 'com.zhkrb.cloudflare-scrape-android:scrape-webview:0.0.4'
 ```
 
 ### Example  
