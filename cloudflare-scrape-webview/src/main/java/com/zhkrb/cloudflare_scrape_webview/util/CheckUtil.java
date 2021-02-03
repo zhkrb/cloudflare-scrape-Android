@@ -1,5 +1,7 @@
 package com.zhkrb.cloudflare_scrape_webview.util;
 
+import android.text.TextUtils;
+
 import java.io.IOException;
 import java.net.CookieHandler;
 import java.net.CookieManager;
@@ -41,11 +43,14 @@ public class CheckUtil {
         }).start();
     }
 
+    private boolean needCheckResult = true;
+
     private void urlThread(String url, String ua){
         if (mCookieManager == null){
             mCookieManager = new CookieManager();
             mCookieManager.getCookieStore().removeAll();
-            mCookieManager.setCookiePolicy(CookiePolicy.ACCEPT_ALL); //接受所有cookies
+            //接受所有cookies
+            mCookieManager.setCookiePolicy(CookiePolicy.ACCEPT_ALL);
             CookieHandler.setDefault(mCookieManager);
         }
         HttpURLConnection.setFollowRedirects(false);
@@ -57,8 +62,15 @@ public class CheckUtil {
                 mCookieList.clear();
             }
             e.printStackTrace();
+            if (!TextUtils.isEmpty(e.getMessage()) && e.getMessage().contains("Cleartext HTTP traffic")){
+                needCheckResult = false;
+                LogUtil.e(e.getMessage());
+                mCheckListener.onFail(e.getMessage());
+            }
         } finally {
-            checkResult();
+            if (needCheckResult){
+                checkResult();
+            }
         }
     }
 
@@ -134,7 +146,7 @@ public class CheckUtil {
                 mCheckListener.onChangeNewUrl(newUrl);
             }else {
                 LogUtil.e("MainUrl","visit website fail");
-                mCheckListener.onFail();
+                mCheckListener.onFail("");
             }
         }
     }
@@ -169,7 +181,7 @@ public class CheckUtil {
 
     public interface CheckListener{
         void onSuccess(List<HttpCookie> cookieList);
-        void onFail();
+        void onFail(String msg);
         void onChangeNewUrl(String url);
     }
 

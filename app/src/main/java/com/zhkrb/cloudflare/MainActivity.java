@@ -6,6 +6,7 @@ import android.os.Bundle;
 import android.text.TextUtils;
 import android.text.method.ScrollingMovementMethod;
 import android.view.View;
+import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import android.widget.ImageView;
 import android.widget.RadioGroup;
@@ -21,6 +22,8 @@ import org.jsoup.nodes.Document;
 
 import java.io.IOException;
 import java.net.HttpCookie;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
@@ -32,7 +35,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     private static final String ua = "Mozilla/5.0 (Linux; Android 6.0.1; SM-G920V Build/MMB29K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/52.0.2743.98 Mobile Safari/537.36";
 
-
+    private ArrayAdapter<String> mAdapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -45,6 +48,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         mResultTextView = findViewById(R.id.result);
         mResultTextView.setMovementMethod(ScrollingMovementMethod.getInstance());
         updateImageState(0x01);
+        mAdapter = getUserIdAdapter();
+        mTextView.setAdapter(mAdapter);
     }
 
     @Override
@@ -53,7 +58,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             Toast.makeText(getApplicationContext(),"You need to enter the url",Toast.LENGTH_SHORT).show();
             return;
         }
-        String url = mTextView.getText().toString();
+        String url = mTextView.getText().toString().trim();
+        addInputHistory(url);
         int id = mRadioGroup.getCheckedRadioButtonId();
         switch (id){
             case R.id.btn1:
@@ -157,6 +163,66 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     private void setText(String msg){
         mResultTextView.setText(msg);
+    }
+
+    /**
+     * 根据sp获取历史输入
+     *
+     * @return
+     */
+    public ArrayAdapter<String> getUserIdAdapter() {
+        if (mAdapter == null) {
+            String ids = SpUtil.getInstance(this).getInputHistory();
+            if (!TextUtils.isEmpty(ids)) {
+                String[] i = ids.split(",");
+                mAdapter = new ArrayAdapter<String>(this, R.layout.item_userid, i);
+            } else {
+                mAdapter = new ArrayAdapter<String>(this, R.layout.item_userid, new String[]{});
+            }
+            return mAdapter;
+        }
+        return mAdapter;
+    }
+
+
+    /**
+     * 添加到历史输入
+     *
+     * @param str
+     */
+    public void addInputHistory(String str) {
+        String ids = SpUtil.getInstance(this).getInputHistory();
+        if (TextUtils.isEmpty(ids)) {
+            ids = str;
+            mAdapter.add(ids);
+        } else {
+            List<String> idListTmp = Arrays.asList(ids.split(","));
+            List<String> idList = new ArrayList<>(idListTmp);
+            if (idList.contains(str)) {
+                return;
+            }
+            if (idList.size() > 3) {
+                idList.remove(idList.size() - 1);
+            }
+            idList.add(0, str);
+            mAdapter.clear();
+            mAdapter.addAll(idList);
+
+            StringBuilder sb = new StringBuilder();
+
+            int size = idList.size();
+            for (int i = 0; i < size; i++) {
+                if (i < size - 1) {
+                    sb.append(idList.get(i));
+                    sb.append(",");
+                } else {
+                    sb.append(idList.get(i));
+                }
+            }
+            ids = sb.toString();
+        }
+        mAdapter.notifyDataSetChanged();
+        SpUtil.getInstance(this).setInputHistory(ids);
     }
 
 }

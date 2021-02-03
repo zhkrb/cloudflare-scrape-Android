@@ -51,7 +51,7 @@ public class WebViewDialog extends AbsDialogFragment {
     private String mUser_agent;
     private boolean isOnBackPress = true;
     private int mRetry_count;
-    private static final int MAX_COUNT = 3;
+    private static final int MAX_COUNT = 2;
     private static final String USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/68.0.3440.106 Safari/537.36";
     private boolean hasNewUrl = false;  //when cf return 301 you need to change old url to new url;
 
@@ -94,7 +94,7 @@ public class WebViewDialog extends AbsDialogFragment {
         }
         if (bundle == null){
             isOnBackPress = false;
-            mListener.onFail(Cloudflare.ERR_BUNDLE_PARAM,WordUtil.getString(mContext,R.string.nobundle));
+            failed(Cloudflare.ERR_BUNDLE_PARAM,WordUtil.getString(mContext,R.string.nobundle));
             this.dismissAllowingStateLoss();
             return;
         }
@@ -114,7 +114,8 @@ public class WebViewDialog extends AbsDialogFragment {
             e.printStackTrace();
             LogUtil.e("Error url : " + mOriginUrl);
             cancelAll();
-            mListener.onFail(Cloudflare.ERR_URL,WordUtil.getString(mContext,R.string.urlerr));
+            isOnBackPress = false;
+            failed(Cloudflare.ERR_URL,WordUtil.getString(mContext,R.string.urlerr));
             dismissAllowingStateLoss();
             return;
         }
@@ -186,7 +187,7 @@ public class WebViewDialog extends AbsDialogFragment {
         }
 
         if (isOnBackPress){
-            mListener.onFail(Cloudflare.ERR_CANCEL,"getCookie cancel");
+            failed(Cloudflare.ERR_CANCEL,"getCookie cancel");
         }
     }
 
@@ -206,15 +207,23 @@ public class WebViewDialog extends AbsDialogFragment {
         }
 
         @Override
-        public void onFail() {
-            if (mRetry_count <= MAX_COUNT){
+        public void onFail(String msg) {
+            if (mRetry_count < MAX_COUNT){
                 if (!mCheckUtil.isCancel()){
                     mRetry_count++;
                     LogUtil.e("Retry count : " + mRetry_count);
                     mHandler.sendEmptyMessage(mWebView == null ? 0x03 : 0x04);
+                }else {
+                    Message message = Message.obtain(mHandler);
+                    message.what = 0x06;
+                    message.obj = msg;
+                    message.sendToTarget();
                 }
             }else {
-                mHandler.sendEmptyMessage(0x06);
+                Message message = Message.obtain(mHandler);
+                message.what = 0x06;
+                message.obj = msg;
+                message.sendToTarget();
             }
         }
 
@@ -224,28 +233,51 @@ public class WebViewDialog extends AbsDialogFragment {
             try {
                 mOriginUrl = url;
                 mUrl = new URL(url);
+                mCheckUtil.checkVisit(mOriginUrl,mUser_agent);
             } catch (MalformedURLException e) {
                 e.printStackTrace();
                 LogUtil.e("Error url : " + url);
                 cancelAll();
-                mListener.onFail(Cloudflare.ERR_URL,WordUtil.getString(mContext,R.string.urlerr));
+                isOnBackPress = false;
+                failed(Cloudflare.ERR_URL,e.getMessage());
                 dismissAllowingStateLoss();
-                return;
             }
-            mCheckUtil.checkVisit(mOriginUrl,mUser_agent);
         }
     };
 
     private void getCookieSuccess(List<HttpCookie> obj) {
         isOnBackPress = false;
-        mListener.onSuccess(obj,hasNewUrl,mUrl.getHost());
+        success(obj,hasNewUrl,mUrl.getHost());
         dismissAllowingStateLoss();
     }
 
-    private void getCookieFail(){
+    private void getCookieFail(String cause){
         isOnBackPress = false;
-        mListener.onFail(Cloudflare.ERR_EXCEED_LIMIT,WordUtil.getString(mContext,R.string.exceedlimit)
-        );
+        if (TextUtils.isEmpty(cause)){
+            failed(Cloudflare.ERR_EXCEED_LIMIT,WordUtil.getString(mContext,R.string.exceedlimit));
+        }else {
+            failed(Cloudflare.ERR_CAUSE,cause);
+        }
+
+        dismissAllowingStateLoss();
+    }
+
+    private void failed(final int code, final String msg){
+        mContext.runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                mListener.onFail(code,msg);
+            }
+        });
+    }
+
+    private void success(final List<HttpCookie> cookieList, final boolean hasNewUrl, final String newUrl){
+        mContext.runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                mListener.onSuccess(cookieList,hasNewUrl,newUrl);
+            }
+        });
     }
 
     private AdvanceWebClient.LoginSuccessListener mLoginSuccessListener = new AdvanceWebClient.LoginSuccessListener() {
@@ -306,8 +338,10 @@ public class WebViewDialog extends AbsDialogFragment {
                         dialog.getCookieSuccess((List<HttpCookie>) msg.obj);
                         break;
                     case 0x06:
-                        dialog.getCookieFail();
+                        String cause = (String) msg.obj;
+                        dialog.getCookieFail(cause);
                         break;
+                    default:
                 }
             }
         }

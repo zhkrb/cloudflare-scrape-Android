@@ -2,6 +2,7 @@ package com.zhkrb.cloudflare_scrape_webview.webClient;
 
 import android.content.Context;
 import android.os.Build;
+import android.text.TextUtils;
 import android.util.Log;
 import android.webkit.CookieManager;
 import android.webkit.WebResourceError;
@@ -46,7 +47,7 @@ public class AdvanceWebClient extends WebViewClient {
         ua = userAgent;
     }
 
-    public void initWebView(String originUrl,String url) {
+    public void initWebView(String originUrl, String url) {
         if (mListener == null) {
             throw new RuntimeException("must set listener");
         }
@@ -61,7 +62,8 @@ public class AdvanceWebClient extends WebViewClient {
         webSettings.setLoadWithOverviewMode(true);
         webSettings.setUserAgentString(ua);
         webSettings.setRenderPriority(WebSettings.RenderPriority.HIGH);
-        webSettings.setCacheMode(WebSettings.LOAD_DEFAULT);  //设置 缓存模式
+        //设置 缓存模式
+        webSettings.setCacheMode(WebSettings.LOAD_DEFAULT);
         // 开启 DOM storage API 功能
         webSettings.setDomStorageEnabled(true);
         //开启 database storage API 功能
@@ -96,7 +98,7 @@ public class AdvanceWebClient extends WebViewClient {
         mOriginUrl = originUrl;
     }
 
-    private class CancelTask extends TimerTask{
+    private class CancelTask extends TimerTask {
 
         @Override
         public void run() {
@@ -113,7 +115,7 @@ public class AdvanceWebClient extends WebViewClient {
     @Override
     public void onPageFinished(WebView view, String url) {
         super.onPageFinished(view, url);
-        if (mCookieManager.getCookie(mUrl).contains("cf_clearance")) {
+        if (!TextUtils.isEmpty(mCookieManager.getCookie(mUrl)) && mCookieManager.getCookie(mUrl).contains("cf_clearance")) {
             if (!isSuccess) {
                 setSuccess(true);
                 mWebView.stopLoading();
@@ -121,10 +123,10 @@ public class AdvanceWebClient extends WebViewClient {
                 return;
             }
         }
-        if (url.contains(mUrl) && canTimeOut){
+        if (url.contains(mUrl) && canTimeOut) {
             mTimer = new Timer();
             mTimerTask = new CancelTask();
-            mTimer.schedule(mTimerTask,TIME_DELAY);
+            mTimer.schedule(mTimerTask, TIME_DELAY);
         }
     }
 
@@ -135,7 +137,7 @@ public class AdvanceWebClient extends WebViewClient {
         Log.e("webView", String.valueOf(request.getUrl()));
         if (String.valueOf(request.getUrl()).contains("captcha.com")) {
             setCanTimeOut(false);
-            if (mTimer != null){
+            if (mTimer != null) {
                 mTimer.cancel();
                 mTimerTask.cancel();
             }
@@ -143,7 +145,7 @@ public class AdvanceWebClient extends WebViewClient {
                 setShowWebView(true);
                 mListener.onCaptchaChallenge();
             }
-        } else if (String.valueOf(request.getUrl()).equals(mUrl)||
+        } else if (String.valueOf(request.getUrl()).equals(mUrl) ||
                 String.valueOf(request.getUrl()).contains(mUrl + "/?__cf_chl_jschl_tk__=")) {
             setPageVisitCount(getPageVisitCount() + 1);
             if (getPageVisitCount() > MAX_COUNT) {
@@ -156,12 +158,12 @@ public class AdvanceWebClient extends WebViewClient {
 
     @Override
     public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
-        Log.e("cookie", mCookieManager.getCookie(mUrl));
-        if (mTimer != null){
+        Log.e("cookie", "" + mCookieManager.getCookie(mUrl));
+        if (mTimer != null) {
             mTimer.cancel();
             mTimerTask.cancel();
         }
-        if (mCookieManager.getCookie(mUrl).contains("cf_clearance")) {
+        if (!TextUtils.isEmpty(mCookieManager.getCookie(mUrl)) && mCookieManager.getCookie(mUrl).contains("cf_clearance")) {
             if (!isSuccess) {
                 setSuccess(true);
                 mWebView.stopLoading();

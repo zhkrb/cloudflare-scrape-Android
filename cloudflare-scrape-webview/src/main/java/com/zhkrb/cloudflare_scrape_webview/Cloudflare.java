@@ -13,6 +13,7 @@ public class Cloudflare {
     public static final int ERR_URL = 0x102;
     public static final int ERR_CANCEL = 0x103;
     public static final int ERR_EXCEED_LIMIT = 0x104;
+    public static final int ERR_CAUSE = 0x105;
 
     private WeakReference<Context> mContext;
     private String mUrl;
